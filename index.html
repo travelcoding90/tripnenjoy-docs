@@ -1,63 +1,449 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trip & Enjoy</title>
-<link rel="icon" href="https://i.postimg.cc/WNbxj55s/Favicon-T-E-(2).png">
-<script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip & Enjoy - Portal de Viajes</title>
+    <link rel="icon" href="https://i.postimg.cc/WNbxj55s/Favicon-T-E-(2).png">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-<div id="root"></div>
-<script type="module">
-import React,{useState,useEffect} from'https://esm.sh/react@18';
-import ReactDOM from'https://esm.sh/react-dom@18/client';
-import{createClient}from'https://esm.sh/@supabase/supabase-js@2';
-const SUPABASE_URL='https://txmfjhhjyjjktgluyjzj.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4bWZqaGhqeWpqa3RnbHV5anpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzU4ODEsImV4cCI6MjA4MzY1MTg4MX0.Qab1gujJBQDfOxeuP5v5pWYO-x5ARGiOkgTaF5aeVyk';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
-const ADMIN_PASS='tripnenjoy2025';
-function App(){
-const[trips,setTrips]=useState([]);
-const[admin,setAdmin]=useState(false);
-const[pass,setPass]=useState('');
-const[auth,setAuth]=useState(false);
-const[logo,setLogo]=useState('https://i.postimg.cc/WNbxj55s/Favicon-T-E-(2).png');
-const[newCode,setNewCode]=useState('');
-const[editInfo,setEditInfo]=useState(false);
-const[loading,setLoading]=useState(true);
-const[docs,setDocs]=useState([]);
-const[curr,setCurr]=useState(null);
-const[expanded,setExpanded]=useState({});
-const[search,setSearch]=useState('');
-const[copied,setCopied]=useState(null);
-const cats={aereos:{n:'Vuelos',i:'✈️'},hoteles:{n:'Hoteles',i:'🏨'},transportes:{n:'Transportes',i:'🚗'},traslados:{n:'Traslados',i:'📍'},actividades:{n:'Actividades',i:'🧭'},circuitos:{n:'Circuitos',i:'🗺️'},seguroMedico:{n:'Seguro',i:'🛡️'},otros:{n:'Otros',i:'📄'}};
-useEffect(()=>{loadTrips();loadLogo();const params=new URLSearchParams(window.location.search);const tripCode=params.get('trip');if(tripCode&&trips.length>0){const trip=trips.find(t=>t.code===tripCode.toUpperCase());if(trip){setCurr(trip);loadDocs(trip.id);}}},[]);
-useEffect(()=>{if(trips.length>0&&!curr){const params=new URLSearchParams(window.location.search);const tripCode=params.get('trip');if(tripCode){const trip=trips.find(t=>t.code===tripCode.toUpperCase());if(trip){setCurr(trip);loadDocs(trip.id);}}}},[trips]);
-const loadTrips=async()=>{setLoading(true);const{data}=await sb.from('trips').select('*').order('created_at',{ascending:false});setTrips(data||[]);setLoading(false);};
-const loadDocs=async(tripId)=>{const{data}=await sb.from('documents').select('*').eq('trip_id',tripId);setDocs(data||[]);};
-const loadLogo=async()=>{try{const{data}=await sb.from('config').select('value').eq('key','logo').single();if(data)setLogo(data.value);}catch(e){}};
-const login=()=>{if(pass===ADMIN_PASS){setAuth(true);setPass('');}else alert('Contraseña incorrecta');};
-const create=async()=>{const c=newCode.toUpperCase().trim();if(!c){alert('Ingresa código');return;}if(trips.find(t=>t.code===c)){alert('Ya existe');return;}const{data,error}=await sb.from('trips').insert([{code:c,page_title:'Documentos de tu Viaje'}]).select().single();if(error){alert('Error: '+error.message);return;}await loadTrips();setCurr(data);loadDocs(data.id);setNewCode('');};
-const updateTrip=async(field,value)=>{await sb.from('trips').update({[field]:value}).eq('id',curr.id);await loadTrips();const updated=trips.find(t=>t.id===curr.id);if(updated)setCurr(updated);};
-const delTrip=async(id,c)=>{if(!confirm(`¿Eliminar ${c}?`))return;await sb.from('trips').delete().eq('id',id);await loadTrips();if(curr?.id===id)setCurr(null);};
-const upLogo=async(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async(ev)=>{await sb.from('config').upsert({key:'logo',value:ev.target.result});setLogo(ev.target.result);};r.readAsDataURL(f);};
-const upFile=async(e,cat)=>{const fs=Array.from(e.target.files);for(const f of fs){const r=new FileReader();r.onload=async(ev)=>{await sb.from('documents').insert([{trip_id:curr.id,category:cat,display_name:f.name.replace('.pdf',''),file_name:f.name,file_data:ev.target.result}]);await loadDocs(curr.id);};r.readAsDataURL(f);}};
-const delDoc=async(id)=>{if(!confirm('¿Eliminar?'))return;await sb.from('documents').delete().eq('id',id);await loadDocs(curr.id);};
-const download=(d)=>{const l=document.createElement('a');l.href=d.file_data;l.download=d.file_name;l.click();};
-const downloadAll=()=>{let t=0;docs.forEach(d=>{setTimeout(()=>download(d),t);t+=300;});};
-const toggle=(cat)=>{setExpanded(prev=>({...prev,[cat]:!prev[cat]}));};
-const copyLink=(code)=>{const link=`${window.location.origin}${window.location.pathname}?trip=${code}`;navigator.clipboard.writeText(link);setCopied(code);setTimeout(()=>setCopied(null),2000);};
-const fmt=d=>d?new Date(d).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'';
-const getByCat=(cat)=>docs.filter(d=>d.category===cat);
-const filtered=trips.filter(t=>t.code.toLowerCase().includes(search.toLowerCase())||(t.destination&&t.destination.toLowerCase().includes(search.toLowerCase()))||(t.passenger_name&&t.passenger_name.toLowerCase().includes(search.toLowerCase())));
-if(loading)return React.createElement('div',{className:'min-h-screen bg-white flex items-center justify-center'},React.createElement('div',{className:'text-6xl'},'⏳'));
-if(admin&&!auth)return React.createElement('div',{className:'min-h-screen bg-white flex items-center justify-center p-6'},React.createElement('div',{className:'max-w-sm w-full text-center'},React.createElement('h2',{className:'text-2xl font-bold mb-6'},'Admin'),React.createElement('input',{type:'password',value:pass,onChange:e=>setPass(e.target.value),onKeyPress:e=>e.key==='Enter'&&login(),placeholder:'Contraseña',className:'w-full px-4 py-3 border-2 border-gray-200 rounded-lg mb-4 focus:outline-none focus:border-[#197751]'}),React.createElement('button',{onClick:login,className:'w-full px-6 py-3 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] mb-3'},'Entrar'),React.createElement('button',{onClick:()=>setAdmin(false),className:'w-full px-6 py-3 text-gray-500'},'Volver')));
-if(auth){return React.createElement('div',{className:'min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6'},React.createElement('div',{className:'max-w-7xl mx-auto'},React.createElement('div',{className:'bg-white rounded-2xl shadow-sm p-8 mb-6'},React.createElement('div',{className:'flex justify-between items-center mb-8'},React.createElement('h1',{className:'text-3xl font-bold text-gray-800'},'Panel de Administración'),React.createElement('button',{onClick:()=>{setAuth(false);setAdmin(false);setCurr(null);},className:'px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200'},'Cerrar Sesión')),React.createElement('div',{className:'border border-gray-200 rounded-xl p-4 mb-6'},React.createElement('h3',{className:'text-sm font-semibold mb-2 text-gray-700'},'🎨 Logo'),React.createElement('input',{type:'file',accept:'image/*',onChange:upLogo,className:'block w-full text-xs file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#197751] file:text-white'}),React.createElement('img',{src:logo,className:'h-12 w-12 mt-2 border rounded object-contain'})),React.createElement('div',{className:'border border-gray-200 rounded-xl p-6 mb-6'},React.createElement('h3',{className:'text-lg font-semibold mb-4 text-gray-700'},'➕ Crear Nuevo Viaje'),React.createElement('div',{className:'flex gap-3'},React.createElement('input',{type:'text',value:newCode,onChange:e=>setNewCode(e.target.value.toUpperCase()),onKeyPress:e=>e.key==='Enter'&&create(),placeholder:'CÓDIGO',className:'flex-1 px-4 py-3 border rounded uppercase font-bold focus:outline-none focus:border-[#197751]'}),React.createElement('button',{onClick:create,className:'px-8 py-3 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] font-semibold'},'Crear'))),React.createElement('div',{className:'border border-gray-200 rounded-xl p-6'},React.createElement('div',{className:'flex justify-between items-center mb-4'},React.createElement('h3',{className:'text-lg font-semibold text-gray-700'},`📋 Viajes (${trips.length})`),React.createElement('input',{type:'text',value:search,onChange:e=>setSearch(e.target.value),placeholder:'Buscar...',className:'px-3 py-2 border rounded text-sm focus:outline-none focus:border-[#197751]'})),React.createElement('div',{className:'space-y-3 max-h-96 overflow-y-auto'},filtered.map(t=>React.createElement('div',{key:t.id,className:'flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100'},React.createElement('div',{className:'flex items-center gap-4 flex-1'},React.createElement('span',{className:'font-mono font-bold text-lg text-[#197751]'},t.code),t.destination&&React.createElement('span',{className:'text-sm text-gray-500'},'→ '+t.destination)),React.createElement('div',{className:'flex gap-2'},React.createElement('button',{onClick:()=>copyLink(t.code),className:copied===t.code?'px-3 py-2 bg-green-100 text-green-700 rounded text-sm':'px-3 py-2 bg-blue-50 text-blue-700 rounded text-sm'},copied===t.code?'✓':'🔗'),React.createElement('button',{onClick:()=>{setCurr(t);loadDocs(t.id);},className:curr?.id===t.id?'px-4 py-2 rounded bg-[#197751] text-white':'px-4 py-2 rounded bg-gray-200 text-gray-700'},curr?.id===t.id?'Editando':'Editar'),React.createElement('button',{onClick:()=>delTrip(t.id,t.code),className:'px-3 py-2 text-red-600 hover:bg-red-50 rounded'},'🗑️')))),!filtered.length&&React.createElement('p',{className:'text-center text-gray-400 py-8'},'No hay viajes')))),curr&&React.createElement('div',{className:'bg-white rounded-2xl shadow-sm p-8'},React.createElement('div',{className:'flex justify-between items-center mb-6'},React.createElement('h2',{className:'text-2xl font-bold'},'Editando: '+curr.code),React.createElement('button',{onClick:()=>setEditInfo(!editInfo),className:'px-4 py-2 text-[#197751] hover:bg-gray-50 rounded'},'✏️ '+(editInfo?'Cerrar':'Info'))),editInfo&&React.createElement('div',{className:'border rounded-xl p-6 mb-6 space-y-4'},React.createElement('div',{},React.createElement('label',{className:'block text-sm font-medium mb-2'},'Título Personalizado'),React.createElement('input',{type:'text',value:curr.page_title||'',onChange:e=>updateTrip('page_title',e.target.value),placeholder:'Título de la página',className:'w-full px-4 py-3 border rounded focus:outline-none focus:border-[#197751]'})),React.createElement('input',{type:'text',value:curr.passenger_name||'',onChange:e=>updateTrip('passenger_name',e.target.value),placeholder:'Nombre del pasajero',className:'w-full px-4 py-3 border rounded focus:outline-none focus:border-[#197751]'}),React.createElement('input',{type:'text',value:curr.destination||'',onChange:e=>updateTrip('destination',e.target.value),placeholder:'Destino',className:'w-full px-4 py-3 border rounded focus:outline-none focus:border-[#197751]'}),React.createElement('div',{className:'grid grid-cols-2 gap-4'},React.createElement('input',{type:'date',value:curr.start_date||'',onChange:e=>updateTrip('start_date',e.target.value),className:'px-4 py-3 border rounded focus:outline-none focus:border-[#197751]'}),React.createElement('input',{type:'date',value:curr.end_date||'',onChange:e=>updateTrip('end_date',e.target.value),className:'px-4 py-3 border rounded focus:outline-none focus:border-[#197751]'}))),React.createElement('div',{className:'grid md:grid-cols-2 gap-6'},Object.keys(cats).map(k=>{const catDocs=getByCat(k);return React.createElement('div',{key:k,className:'border rounded-xl p-6'},React.createElement('div',{className:'flex items-center gap-3 mb-4'},React.createElement('span',{className:'text-2xl'},cats[k].i),React.createElement('h3',{className:'font-semibold'},cats[k].n),React.createElement('span',{className:'ml-auto text-sm text-gray-400'},catDocs.length)),React.createElement('input',{type:'file',accept:'.pdf',multiple:true,onChange:e=>upFile(e,k),className:'block w-full text-sm mb-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-[#197751] file:text-white'}),catDocs.length>0&&React.createElement('div',{className:'space-y-2'},catDocs.map(d=>React.createElement('div',{key:d.id,className:'flex justify-between items-center p-2 bg-gray-50 rounded hover:bg-gray-100'},React.createElement('span',{className:'text-sm truncate flex-1'},d.display_name),React.createElement('button',{onClick:()=>delDoc(d.id),className:'text-red-600 text-sm ml-2'},'✕')))));}))));}
-if(!curr)return React.createElement('div',{className:'min-h-screen bg-white flex items-center justify-center p-6'},React.createElement('div',{className:'text-center'},React.createElement('p',{className:'text-gray-500 mb-4'},'Viaje no encontrado'),React.createElement('button',{onClick:()=>setAdmin(true),className:'text-gray-400 text-sm'},'Admin')));
-const vis=Object.keys(cats).filter(k=>getByCat(k).length>0);
-return React.createElement('div',{className:'min-h-screen bg-white p-6'},React.createElement('div',{className:'max-w-3xl mx-auto'},React.createElement('div',{className:'mb-6'},React.createElement('div',{className:'flex justify-between items-start mb-3'},React.createElement('div',{className:'flex-1'},React.createElement('h1',{className:'text-3xl font-bold text-gray-800 mb-2'},curr.page_title||'Documentos de tu Viaje'),React.createElement('div',{className:'flex items-center gap-2 mb-1'},React.createElement('span',{className:'px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-mono font-semibold'},curr.code)),curr.passenger_name&&React.createElement('p',{className:'text-gray-600 text-sm'},curr.passenger_name)),React.createElement('img',{src:logo,className:'h-20 w-20 object-contain'})),(curr.destination||curr.start_date)&&React.createElement('div',{className:'bg-gray-50 rounded-lg p-3 mb-3'},React.createElement('div',{className:'flex flex-wrap gap-3 text-sm text-gray-600'},curr.destination&&React.createElement('div',{className:'flex items-center gap-2'},React.createElement('span',{},'📍'),React.createElement('span',{},curr.destination)),curr.start_date&&curr.end_date&&React.createElement('div',{className:'flex items-center gap-2'},React.createElement('span',{},'📅'),React.createElement('span',{},fmt(curr.start_date)+' - '+fmt(curr.end_date))))),docs.length>0&&React.createElement('div',{className:'flex justify-between items-center'},React.createElement('p',{className:'text-sm text-gray-500'},docs.length+' archivo'+(docs.length!==1?'s':'')),React.createElement('button',{onClick:downloadAll,className:'px-4 py-2 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] text-sm'},'Descargar Todos'))),!vis.length?React.createElement('div',{className:'text-center py-16'},React.createElement('div',{className:'text-6xl mb-4'},'📄'),React.createElement('p',{className:'text-gray-400'},'No hay documentos')):React.createElement('div',{className:'space-y-2'},vis.map(k=>{const catDocs=getByCat(k);const isExpanded=expanded[k];return React.createElement('div',{key:k,className:'border border-gray-200 rounded-lg overflow-hidden'},React.createElement('button',{onClick:()=>toggle(k),className:'w-full flex justify-between items-center p-3 hover:bg-gray-50'},React.createElement('div',{className:'flex items-center gap-3'},React.createElement('span',{className:'text-xl'},cats[k].i),React.createElement('span',{className:'font-semibold text-gray-700'},cats[k].n),React.createElement('span',{className:'text-sm text-gray-400'},`(${catDocs.length})`)),React.createElement('span',{className:'text-gray-400'},isExpanded?'▼':'▶')),isExpanded&&React.createElement('div',{className:'border-t border-gray-200 bg-gray-50'},catDocs.map((d,idx)=>React.createElement('div',{key:d.id,className:`flex justify-between items-center px-4 py-2 hover:bg-gray-100 ${idx!==catDocs.length-1?'border-b border-gray-100':''}`},React.createElement('span',{className:'text-gray-700 text-sm flex-1 truncate'},d.display_name),React.createElement('button',{onClick:()=>download(d),className:'p-2 bg-[#197751] text-white rounded hover:bg-[#145a3e] ml-3'},'⬇')))));})),React.createElement('div',{className:'mt-12 pt-6 border-t border-gray-200'},React.createElement('div',{className:'flex justify-center items-center gap-6'},React.createElement('a',{href:'https://instagram.com/tripnenjoy',target:'_blank',className:'flex items-center gap-2 text-gray-500 hover:text-gray-700'},React.createElement('svg',{className:'w-5 h-5',fill:'currentColor',viewBox:'0 0 24 24'},React.createElement('path',{d:'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'})),React.createElement('span',{},'@tripnenjoy')),React.createElement('a',{href:'https://wa.me/5491126092015',target:'_blank',className:'flex items-center gap-2 text-gray-500 hover:text-gray-700'},React.createElement('svg',{className:'w-5 h-5',fill:'currentColor',viewBox:'0 0 24 24'},React.createElement('path',{d:'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'})),React.createElement('span',{},'54 911 2609-2015')))));}
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-</script>
+    <div id="root"></div>
+    
+    <script type="module">
+        import React, { useState, useEffect } from 'https://esm.sh/react@18';
+        import ReactDOM from 'https://esm.sh/react-dom@18/client';
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        const SUPABASE_URL = 'https://txmfjhhjyjjktgluyjzj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4bWZqaGhqeWpqa3RnbHV5anpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzU4ODEsImV4cCI6MjA4MzY1MTg4MX0.Qab1gujJBQDfOxeuP5v5pWYO-x5ARGiOkgTaF5aeVyk';
+        const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const ADMIN_PASS = 'tripnenjoy2025';
+
+        function App() {
+            const [trips, setTrips] = useState([]);
+            const [code, setCode] = useState('');
+            const [curr, setCurr] = useState(null);
+            const [admin, setAdmin] = useState(false);
+            const [pass, setPass] = useState('');
+            const [auth, setAuth] = useState(false);
+            const [logo, setLogo] = useState('https://i.postimg.cc/WNbxj55s/Favicon-T-E-(2).png');
+            const [newCode, setNewCode] = useState('');
+            const [editInfo, setEditInfo] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [docs, setDocs] = useState([]);
+
+            const cats = {
+                aereos: { n: 'Vuelos', i: '✈️', c: 'bg-blue-500' },
+                hoteles: { n: 'Hoteles', i: '🏨', c: 'bg-purple-500' },
+                transportes: { n: 'Transportes', i: '🚗', c: 'bg-green-500' },
+                traslados: { n: 'Traslados', i: '📍', c: 'bg-orange-500' },
+                actividades: { n: 'Actividades', i: '🧭', c: 'bg-pink-500' },
+                circuitos: { n: 'Circuitos', i: '🗺️', c: 'bg-indigo-500' },
+                seguroMedico: { n: 'Seguro', i: '🛡️', c: 'bg-red-500' },
+                otros: { n: 'Otros', i: '📄', c: 'bg-gray-500' }
+            };
+
+            const loadTrips = async () => {
+                setLoading(true);
+                const { data } = await sb.from('trips').select('*').order('created_at', { ascending: false });
+                setTrips(data || []);
+                setLoading(false);
+            };
+
+            const loadDocs = async (tripId) => {
+                const { data } = await sb.from('documents').select('*').eq('trip_id', tripId);
+                setDocs(data || []);
+            };
+
+            const loadLogo = async () => {
+                const { data } = await sb.from('config').select('value').eq('key', 'logo').single();
+                if (data) setLogo(data.value);
+            };
+
+            useEffect(() => { loadTrips(); loadLogo(); }, []);
+
+            const access = () => {
+                const c = code.toUpperCase().trim();
+                const trip = trips.find(t => t.code === c);
+                if (trip) { setCurr(trip); setCode(''); loadDocs(trip.id); } else alert('Código inválido');
+            };
+
+            const login = () => { if (pass === ADMIN_PASS) { setAuth(true); setPass(''); } else alert('Contraseña incorrecta'); };
+
+            const create = async () => {
+                const c = newCode.toUpperCase().trim();
+                if (!c) { alert('Ingresa código'); return; }
+                if (trips.find(t => t.code === c)) { alert('Ya existe'); return; }
+                const { data, error } = await sb.from('trips').insert([{ code: c }]).select().single();
+                if (error) { alert('Error: ' + error.message); return; }
+                await loadTrips();
+                setCurr(data);
+                loadDocs(data.id);
+                setNewCode('');
+            };
+
+            const updateTrip = async (field, value) => {
+                await sb.from('trips').update({ [field]: value }).eq('id', curr.id);
+                await loadTrips();
+                const updated = trips.find(t => t.id === curr.id);
+                if (updated) setCurr(updated);
+            };
+
+            const delTrip = async (id, c) => {
+                if (!confirm(`¿Eliminar ${c}?`)) return;
+                await sb.from('trips').delete().eq('id', id);
+                await loadTrips();
+                if (curr?.id === id) setCurr(null);
+            };
+
+            const upLogo = async (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = async (ev) => {
+                    await sb.from('config').update({ value: ev.target.result }).eq('key', 'logo');
+                    setLogo(ev.target.result);
+                };
+                r.readAsDataURL(f);
+            };
+
+            const upFile = async (e, cat) => {
+                const fs = Array.from(e.target.files);
+                for (const f of fs) {
+                    const r = new FileReader();
+                    r.onload = async (ev) => {
+                        await sb.from('documents').insert([{
+                            trip_id: curr.id,
+                            category: cat,
+                            display_name: f.name.replace('.pdf', ''),
+                            file_name: f.name,
+                            file_data: ev.target.result
+                        }]);
+                        await loadDocs(curr.id);
+                    };
+                    r.readAsDataURL(f);
+                }
+            };
+
+            const delDoc = async (id) => {
+                if (!confirm('¿Eliminar?')) return;
+                await sb.from('documents').delete().eq('id', id);
+                await loadDocs(curr.id);
+            };
+
+            const download = (d) => {
+                const l = document.createElement('a');
+                l.href = d.file_data;
+                l.download = d.file_name;
+                l.click();
+            };
+
+            const downloadAll = () => {
+                let t = 0;
+                docs.forEach(d => { setTimeout(() => download(d), t); t += 300; });
+            };
+
+            const fmt = d => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+            const getDocsByCat = (cat) => docs.filter(d => d.category === cat);
+
+            if (loading) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center' },
+                React.createElement('div', { className: 'text-center' },
+                    React.createElement('div', { className: 'text-6xl mb-4' }, '⏳'),
+                    React.createElement('p', { className: 'text-xl text-gray-600' }, 'Cargando...')
+                )
+            );
+
+            if (!curr && !admin) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6' },
+                React.createElement('div', { className: 'max-w-md w-full' },
+                    React.createElement('div', { className: 'bg-white rounded-lg shadow-2xl p-8' },
+                        React.createElement('div', { className: 'text-center mb-8' },
+                            React.createElement('img', { src: logo, className: 'h-24 w-24 mx-auto mb-4 object-contain' }),
+                            React.createElement('h1', { className: 'text-3xl font-bold mb-2' }, 'Trip & Enjoy'),
+                            React.createElement('p', { className: 'text-gray-600' }, 'Portal de Documentos')
+                        ),
+                        React.createElement('div', { className: 'space-y-4' },
+                            React.createElement('input', {
+                                type: 'text',
+                                value: code,
+                                onChange: e => setCode(e.target.value.toUpperCase()),
+                                onKeyPress: e => e.key === 'Enter' && access(),
+                                placeholder: 'CÓDIGO DEL VIAJE',
+                                className: 'w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-500 text-center text-lg font-bold uppercase'
+                            }),
+                            React.createElement('button', {
+                                onClick: access,
+                                className: 'w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold'
+                            }, '🔑 Acceder'),
+                            React.createElement('button', {
+                                onClick: () => setAdmin(true),
+                                className: 'w-full px-6 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm'
+                            }, 'Admin')
+                        )
+                    ),
+                    React.createElement('div', { className: 'mt-6 bg-white rounded-lg shadow-lg p-6 text-center' },
+                        React.createElement('p', { className: 'text-gray-600 mb-4 text-sm font-medium' }, 'Seguinos'),
+                        React.createElement('div', { className: 'flex justify-center gap-4' },
+                            React.createElement('a', {
+                                href: 'https://instagram.com/tripnenjoy',
+                                target: '_blank',
+                                className: 'flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm'
+                            }, '@tripnenjoy'),
+                            React.createElement('a', {
+                                href: 'https://wa.me/5491126092015',
+                                target: '_blank',
+                                className: 'flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm'
+                            }, 'WhatsApp')
+                        )
+                    )
+                )
+            );
+
+            if (admin && !auth) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6' },
+                React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-2xl p-8' },
+                    React.createElement('h2', { className: 'text-2xl font-bold text-center mb-6' }, 'Admin'),
+                    React.createElement('input', {
+                        type: 'password',
+                        value: pass,
+                        onChange: e => setPass(e.target.value),
+                        onKeyPress: e => e.key === 'Enter' && login(),
+                        placeholder: 'Contraseña',
+                        className: 'w-full px-4 py-3 border-2 rounded-lg mb-4'
+                    }),
+                    React.createElement('button', {
+                        onClick: login,
+                        className: 'w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-3'
+                    }, 'Entrar'),
+                    React.createElement('button', {
+                        onClick: () => setAdmin(false),
+                        className: 'w-full px-6 py-3 bg-gray-200 rounded-lg'
+                    }, 'Volver')
+                )
+            );
+
+            if (auth) {
+                return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6' },
+                    React.createElement('div', { className: 'max-w-6xl mx-auto' },
+                        React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                            React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+                                React.createElement('h1', { className: 'text-2xl font-bold' }, 'Panel Admin'),
+                                React.createElement('button', {
+                                    onClick: () => { setAuth(false); setAdmin(false); setCurr(null); },
+                                    className: 'px-4 py-2 bg-gray-600 text-white rounded-lg'
+                                }, 'Salir')
+                            ),
+                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
+                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '📤 Logo'),
+                                React.createElement('input', {
+                                    type: 'file',
+                                    accept: 'image/*',
+                                    onChange: upLogo,
+                                    className: 'block w-full text-sm'
+                                }),
+                                React.createElement('img', { src: logo, className: 'h-16 w-16 mt-3 border rounded' })
+                            ),
+                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
+                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '➕ Crear Viaje'),
+                                React.createElement('div', { className: 'flex gap-3' },
+                                    React.createElement('input', {
+                                        type: 'text',
+                                        value: newCode,
+                                        onChange: e => setNewCode(e.target.value.toUpperCase()),
+                                        onKeyPress: e => e.key === 'Enter' && create(),
+                                        placeholder: 'CÓDIGO',
+                                        className: 'flex-1 px-3 py-2 border rounded uppercase font-bold'
+                                    }),
+                                    React.createElement('button', {
+                                        onClick: create,
+                                        className: 'px-6 py-2 bg-green-600 text-white rounded-lg'
+                                    }, 'Crear')
+                                )
+                            ),
+                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
+                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, `Viajes (${trips.length})`),
+                                React.createElement('div', { className: 'space-y-2' },
+                                    trips.map(t => React.createElement('div', { key: t.id, className: 'flex justify-between items-center p-3 bg-gray-50 rounded-lg' },
+                                        React.createElement('div', { className: 'flex items-center gap-3' },
+                                            React.createElement('span', { className: 'font-mono font-bold text-lg' }, t.code),
+                                            t.destination && React.createElement('span', { className: 'text-sm text-gray-600' }, '→ ' + t.destination)
+                                        ),
+                                        React.createElement('div', { className: 'flex gap-2' },
+                                            React.createElement('button', {
+                                                onClick: () => { setCurr(t); loadDocs(t.id); },
+                                                className: curr?.id === t.id ? 'px-4 py-2 rounded-lg bg-blue-600 text-white' : 'px-4 py-2 rounded-lg bg-blue-100 text-blue-700'
+                                            }, curr?.id === t.id ? 'Editando' : 'Editar'),
+                                            React.createElement('button', {
+                                                onClick: () => delTrip(t.id, t.code),
+                                                className: 'px-3 py-2 bg-red-100 text-red-700 rounded-lg'
+                                            }, '🗑️')
+                                        )
+                                    )),
+                                    !trips.length && React.createElement('p', { className: 'text-center text-gray-500 py-4' }, 'Sin viajes')
+                                )
+                            )
+                        ),
+                        curr && React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
+                            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                                React.createElement('h2', { className: 'text-xl font-bold' }, 'Editando: ' + curr.code),
+                                React.createElement('button', {
+                                    onClick: () => setEditInfo(!editInfo),
+                                    className: 'text-blue-600'
+                                }, '✏️ Info')
+                            ),
+                            editInfo && React.createElement('div', { className: 'border rounded-lg p-4 mb-6 space-y-3' },
+                                React.createElement('input', {
+                                    type: 'text',
+                                    placeholder: 'Nombre pasajero',
+                                    value: curr.passenger_name || '',
+                                    onChange: e => updateTrip('passenger_name', e.target.value),
+                                    className: 'w-full px-3 py-2 border rounded'
+                                }),
+                                React.createElement('input', {
+                                    type: 'text',
+                                    placeholder: 'Destino',
+                                    value: curr.destination || '',
+                                    onChange: e => updateTrip('destination', e.target.value),
+                                    className: 'w-full px-3 py-2 border rounded'
+                                }),
+                                React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                                    React.createElement('input', {
+                                        type: 'date',
+                                        value: curr.start_date || '',
+                                        onChange: e => updateTrip('start_date', e.target.value),
+                                        className: 'px-3 py-2 border rounded'
+                                    }),
+                                    React.createElement('input', {
+                                        type: 'date',
+                                        value: curr.end_date || '',
+                                        onChange: e => updateTrip('end_date', e.target.value),
+                                        className: 'px-3 py-2 border rounded'
+                                    })
+                                ),
+                                React.createElement('button', {
+                                    onClick: () => setEditInfo(false),
+                                    className: 'px-4 py-2 bg-green-600 text-white rounded-lg'
+                                }, 'Cerrar')
+                            ),
+                            React.createElement('div', { className: 'space-y-6' },
+                                Object.keys(cats).map(k => {
+                                    const catDocs = getDocsByCat(k);
+                                    return React.createElement('div', { key: k, className: 'border rounded-lg p-4' },
+                                        React.createElement('div', { className: 'flex items-center gap-3 mb-3' },
+                                            React.createElement('div', { className: `${cats[k].c} p-2 rounded-lg text-2xl` }, cats[k].i),
+                                            React.createElement('h3', { className: 'font-semibold' }, cats[k].n),
+                                            React.createElement('span', { className: 'ml-auto text-sm text-gray-500' }, catDocs.length)
+                                        ),
+                                        React.createElement('input', {
+                                            type: 'file',
+                                            accept: '.pdf',
+                                            multiple: true,
+                                            onChange: e => upFile(e, k),
+                                            className: 'block w-full text-sm mb-3'
+                                        }),
+                                        catDocs.length > 0 && React.createElement('div', { className: 'space-y-2' },
+                                            catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-2 bg-gray-50 rounded' },
+                                                React.createElement('span', { className: 'text-sm truncate flex-1' }, d.display_name),
+                                                React.createElement('button', {
+                                                    onClick: () => delDoc(d.id),
+                                                    className: 'text-red-600 text-sm ml-2'
+                                                }, 'Eliminar')
+                                            ))
+                                        )
+                                    );
+                                })
+                            )
+                        )
+                    )
+                );
+            }
+
+            const vis = Object.keys(cats).filter(k => getDocsByCat(k).length > 0);
+
+            return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6' },
+                React.createElement('div', { className: 'max-w-4xl mx-auto' },
+                    React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                        React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+                                    React.createElement('h1', { className: 'text-3xl font-bold' }, 'Documentos'),
+                                    React.createElement('span', { className: 'px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-mono font-bold' }, curr.code)
+                                ),
+                                curr.passenger_name && React.createElement('p', { className: 'text-gray-600' }, '👥 ' + curr.passenger_name)
+                            ),
+                            React.createElement('div', { className: 'flex items-center gap-3' },
+                                React.createElement('img', { src: logo, className: 'h-16 w-16 object-contain' }),
+                                React.createElement('button', {
+                                    onClick: () => setCurr(null),
+                                    className: 'px-3 py-1 bg-gray-200 rounded text-sm'
+                                }, 'Salir')
+                            )
+                        ),
+                        (curr.destination || curr.start_date) && React.createElement('div', { className: 'bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mt-4' },
+                            React.createElement('div', { className: 'flex flex-wrap gap-4 text-sm' },
+                                curr.destination && React.createElement('div', { className: 'flex items-center gap-2' },
+                                    React.createElement('span', { className: 'text-xl' }, '🌍'),
+                                    React.createElement('span', { className: 'font-medium' }, curr.destination)
+                                ),
+                                curr.start_date && curr.end_date && React.createElement('div', { className: 'flex items-center gap-2' },
+                                    React.createElement('span', { className: 'text-xl' }, '📅'),
+                                    React.createElement('span', {}, fmt(curr.start_date) + ' - ' + fmt(curr.end_date))
+                                )
+                            )
+                        ),
+                        docs.length > 0 && React.createElement('div', { className: 'mt-4 flex justify-between' },
+                            React.createElement('p', { className: 'text-sm text-gray-600' }, docs.length + ' documento' + (docs.length !== 1 ? 's' : '')),
+                            React.createElement('button', {
+                                onClick: downloadAll,
+                                className: 'px-3 py-1 bg-green-600 text-white rounded-lg text-sm'
+                            }, '📥 Todos')
+                        )
+                    ),
+                    !vis.length ? React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-12 text-center' },
+                        React.createElement('div', { className: 'text-6xl mb-4' }, '📄'),
+                        React.createElement('p', { className: 'text-gray-500' }, 'Sin documentos')
+                    ) : React.createElement('div', { className: 'space-y-6' },
+                        vis.map(k => {
+                            const catDocs = getDocsByCat(k);
+                            return React.createElement('div', { key: k, className: 'bg-white rounded-lg shadow-lg p-6' },
+                                React.createElement('div', { className: 'flex items-center gap-3 mb-4' },
+                                    React.createElement('div', { className: `${cats[k].c} p-3 rounded-lg text-2xl` }, cats[k].i),
+                                    React.createElement('h2', { className: 'text-xl font-semibold' }, cats[k].n)
+                                ),
+                                React.createElement('div', { className: 'space-y-3' },
+                                    catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100' },
+                                        React.createElement('div', { className: 'flex items-center gap-3 flex-1' },
+                                            React.createElement('span', { className: 'text-xl' }, '📄'),
+                                            React.createElement('span', { className: 'truncate' }, d.display_name)
+                                        ),
+                                        React.createElement('button', {
+                                            onClick: () => download(d),
+                                            className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
+                                        }, '📥 Descargar')
+                                    ))
+                                )
+                            );
+                        })
+                    ),
+                    React.createElement('div', { className: 'mt-8 bg-white rounded-lg shadow-lg p-6 text-center' },
+                        React.createElement('p', { className: 'text-gray-600 mb-4 text-sm font-medium' }, 'Seguinos'),
+                        React.createElement('div', { className: 'flex justify-center gap-4' },
+                            React.createElement('a', {
+                                href: 'https://instagram.com/tripnenjoy',
+                                target: '_blank',
+                                className: 'flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm'
+                            }, '@tripnenjoy'),
+                            React.createElement('a', {
+                                href: 'https://wa.me/5491126092015',
+                                target: '_blank',
+                                className: 'flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm'
+                            }, 'WhatsApp')
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+    </script>
 </body>
 </html>
