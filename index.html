@@ -32,16 +32,18 @@
             const [editInfo, setEditInfo] = useState(false);
             const [loading, setLoading] = useState(true);
             const [docs, setDocs] = useState([]);
+            const [pageTitle, setPageTitle] = useState('Documentos de tu Viaje');
+            const [editingTitle, setEditingTitle] = useState(false);
 
             const cats = {
-                aereos: { n: 'Vuelos', i: '✈️', c: 'bg-blue-500' },
-                hoteles: { n: 'Hoteles', i: '🏨', c: 'bg-purple-500' },
-                transportes: { n: 'Transportes', i: '🚗', c: 'bg-green-500' },
-                traslados: { n: 'Traslados', i: '📍', c: 'bg-orange-500' },
-                actividades: { n: 'Actividades', i: '🧭', c: 'bg-pink-500' },
-                circuitos: { n: 'Circuitos', i: '🗺️', c: 'bg-indigo-500' },
-                seguroMedico: { n: 'Seguro', i: '🛡️', c: 'bg-red-500' },
-                otros: { n: 'Otros', i: '📄', c: 'bg-gray-500' }
+                aereos: { n: 'Vuelos', i: '✈️', c: 'bg-[#197751]' },
+                hoteles: { n: 'Hoteles', i: '🏨', c: 'bg-[#197751]' },
+                transportes: { n: 'Transportes', i: '🚗', c: 'bg-[#197751]' },
+                traslados: { n: 'Traslados', i: '📍', c: 'bg-[#197751]' },
+                actividades: { n: 'Actividades', i: '🧭', c: 'bg-[#197751]' },
+                circuitos: { n: 'Circuitos', i: '🗺️', c: 'bg-[#197751]' },
+                seguroMedico: { n: 'Seguro', i: '🛡️', c: 'bg-[#197751]' },
+                otros: { n: 'Otros', i: '📄', c: 'bg-[#197751]' }
             };
 
             const loadTrips = async () => {
@@ -61,7 +63,21 @@
                 if (data) setLogo(data.value);
             };
 
-            useEffect(() => { loadTrips(); loadLogo(); }, []);
+            const loadPageTitle = async () => {
+                try {
+                    const { data } = await sb.from('config').select('value').eq('key', 'page_title').single();
+                    if (data) setPageTitle(data.value);
+                } catch (e) {
+                    await sb.from('config').insert([{ key: 'page_title', value: 'Documentos de tu Viaje' }]);
+                }
+            };
+
+            useEffect(() => { loadTrips(); loadLogo(); loadPageTitle(); }, []);
+
+            const savePageTitle = async (newTitle) => {
+                await sb.from('config').upsert({ key: 'page_title', value: newTitle });
+                setPageTitle(newTitle);
+            };
 
             const access = () => {
                 const c = code.toUpperCase().trim();
@@ -147,206 +163,211 @@
             const fmt = d => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
             const getDocsByCat = (cat) => docs.filter(d => d.category === cat);
 
-            if (loading) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center' },
+            if (loading) return React.createElement('div', { className: 'min-h-screen bg-white flex items-center justify-center' },
                 React.createElement('div', { className: 'text-center' },
                     React.createElement('div', { className: 'text-6xl mb-4' }, '⏳'),
                     React.createElement('p', { className: 'text-xl text-gray-600' }, 'Cargando...')
                 )
             );
 
-            if (!curr && !admin) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6' },
-                React.createElement('div', { className: 'max-w-md w-full' },
-                    React.createElement('div', { className: 'bg-white rounded-lg shadow-2xl p-8' },
-                        React.createElement('div', { className: 'text-center mb-8' },
-                            React.createElement('img', { src: logo, className: 'h-24 w-24 mx-auto mb-4 object-contain' }),
-                            React.createElement('h1', { className: 'text-3xl font-bold mb-2' }, 'Trip & Enjoy'),
-                            React.createElement('p', { className: 'text-gray-600' }, 'Portal de Documentos')
-                        ),
-                        React.createElement('div', { className: 'space-y-4' },
-                            React.createElement('input', {
-                                type: 'text',
-                                value: code,
-                                onChange: e => setCode(e.target.value.toUpperCase()),
-                                onKeyPress: e => e.key === 'Enter' && access(),
-                                placeholder: 'CÓDIGO DEL VIAJE',
-                                className: 'w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-500 text-center text-lg font-bold uppercase'
-                            }),
-                            React.createElement('button', {
-                                onClick: access,
-                                className: 'w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold'
-                            }, '🔑 Acceder'),
-                            React.createElement('button', {
-                                onClick: () => setAdmin(true),
-                                className: 'w-full px-6 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm'
-                            }, 'Admin')
-                        )
-                    ),
-                    React.createElement('div', { className: 'mt-6 bg-white rounded-lg shadow-lg p-6 text-center' },
-                        React.createElement('p', { className: 'text-gray-600 mb-4 text-sm font-medium' }, 'Seguinos'),
-                        React.createElement('div', { className: 'flex justify-center gap-4' },
-                            React.createElement('a', {
-                                href: 'https://instagram.com/tripnenjoy',
-                                target: '_blank',
-                                className: 'flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm'
-                            }, '@tripnenjoy'),
-                            React.createElement('a', {
-                                href: 'https://wa.me/5491126092015',
-                                target: '_blank',
-                                className: 'flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm'
-                            }, 'WhatsApp')
-                        )
-                    )
+            // PANTALLA PRINCIPAL - Minimalista y centrada
+            if (!curr && !admin) return React.createElement('div', { className: 'min-h-screen bg-white flex items-center justify-center p-6' },
+                React.createElement('div', { className: 'max-w-sm w-full text-center' },
+                    React.createElement('img', { src: logo, className: 'h-32 w-32 mx-auto mb-8 object-contain' }),
+                    React.createElement('input', {
+                        type: 'text',
+                        value: code,
+                        onChange: e => setCode(e.target.value.toUpperCase()),
+                        onKeyPress: e => e.key === 'Enter' && access(),
+                        placeholder: 'CÓDIGO DEL VIAJE',
+                        className: 'w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#197751] text-center text-lg font-semibold uppercase mb-4'
+                    }),
+                    React.createElement('button', {
+                        onClick: access,
+                        className: 'w-full px-6 py-3 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] font-semibold mb-6'
+                    }, 'Acceder'),
+                    React.createElement('button', {
+                        onClick: () => setAdmin(true),
+                        className: 'text-gray-400 text-sm hover:text-gray-600'
+                    }, 'Admin')
                 )
             );
 
-            if (admin && !auth) return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6' },
-                React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-2xl p-8' },
-                    React.createElement('h2', { className: 'text-2xl font-bold text-center mb-6' }, 'Admin'),
+            if (admin && !auth) return React.createElement('div', { className: 'min-h-screen bg-white flex items-center justify-center p-6' },
+                React.createElement('div', { className: 'max-w-sm w-full text-center' },
+                    React.createElement('h2', { className: 'text-2xl font-bold mb-6' }, 'Admin'),
                     React.createElement('input', {
                         type: 'password',
                         value: pass,
                         onChange: e => setPass(e.target.value),
                         onKeyPress: e => e.key === 'Enter' && login(),
                         placeholder: 'Contraseña',
-                        className: 'w-full px-4 py-3 border-2 rounded-lg mb-4'
+                        className: 'w-full px-4 py-3 border-2 border-gray-200 rounded-lg mb-4 focus:outline-none focus:border-[#197751]'
                     }),
                     React.createElement('button', {
                         onClick: login,
-                        className: 'w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-3'
+                        className: 'w-full px-6 py-3 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] mb-3'
                     }, 'Entrar'),
                     React.createElement('button', {
                         onClick: () => setAdmin(false),
-                        className: 'w-full px-6 py-3 bg-gray-200 rounded-lg'
+                        className: 'w-full px-6 py-3 text-gray-500 hover:text-gray-700'
                     }, 'Volver')
                 )
             );
 
+            // PANEL ADMIN - Más estético
             if (auth) {
-                return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6' },
-                    React.createElement('div', { className: 'max-w-6xl mx-auto' },
-                        React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
-                            React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-                                React.createElement('h1', { className: 'text-2xl font-bold' }, 'Panel Admin'),
+                return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6' },
+                    React.createElement('div', { className: 'max-w-7xl mx-auto' },
+                        React.createElement('div', { className: 'bg-white rounded-2xl shadow-sm p-8 mb-6' },
+                            React.createElement('div', { className: 'flex justify-between items-center mb-8' },
+                                React.createElement('h1', { className: 'text-3xl font-bold text-gray-800' }, 'Panel de Administración'),
                                 React.createElement('button', {
                                     onClick: () => { setAuth(false); setAdmin(false); setCurr(null); },
-                                    className: 'px-4 py-2 bg-gray-600 text-white rounded-lg'
-                                }, 'Salir')
+                                    className: 'px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition'
+                                }, 'Cerrar Sesión')
                             ),
-                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
-                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '📤 Logo'),
-                                React.createElement('input', {
-                                    type: 'file',
-                                    accept: 'image/*',
-                                    onChange: upLogo,
-                                    className: 'block w-full text-sm'
-                                }),
-                                React.createElement('img', { src: logo, className: 'h-16 w-16 mt-3 border rounded' })
+
+                            React.createElement('div', { className: 'grid md:grid-cols-2 gap-6 mb-6' },
+                                React.createElement('div', { className: 'border border-gray-200 rounded-xl p-6' },
+                                    React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-700' }, '🎨 Logo de la Agencia'),
+                                    React.createElement('input', {
+                                        type: 'file',
+                                        accept: 'image/*',
+                                        onChange: upLogo,
+                                        className: 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#197751] file:text-white hover:file:bg-[#145a3e] cursor-pointer'
+                                    }),
+                                    React.createElement('img', { src: logo, className: 'h-20 w-20 mt-4 border border-gray-200 rounded-lg object-contain' })
+                                ),
+
+                                React.createElement('div', { className: 'border border-gray-200 rounded-xl p-6' },
+                                    React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-700' }, '📝 Título de Página'),
+                                    editingTitle ? React.createElement('div', { className: 'flex gap-2' },
+                                        React.createElement('input', {
+                                            type: 'text',
+                                            value: pageTitle,
+                                            onChange: e => setPageTitle(e.target.value),
+                                            className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#197751]'
+                                        }),
+                                        React.createElement('button', {
+                                            onClick: () => { savePageTitle(pageTitle); setEditingTitle(false); },
+                                            className: 'px-4 py-2 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e]'
+                                        }, 'Guardar')
+                                    ) : React.createElement('div', { className: 'flex justify-between items-center' },
+                                        React.createElement('p', { className: 'text-gray-600' }, pageTitle),
+                                        React.createElement('button', {
+                                            onClick: () => setEditingTitle(true),
+                                            className: 'text-[#197751] hover:text-[#145a3e]'
+                                        }, 'Editar')
+                                    )
+                                )
                             ),
-                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
-                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '➕ Crear Viaje'),
+
+                            React.createElement('div', { className: 'border border-gray-200 rounded-xl p-6 mb-6' },
+                                React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-700' }, '➕ Crear Nuevo Viaje'),
                                 React.createElement('div', { className: 'flex gap-3' },
                                     React.createElement('input', {
                                         type: 'text',
                                         value: newCode,
                                         onChange: e => setNewCode(e.target.value.toUpperCase()),
                                         onKeyPress: e => e.key === 'Enter' && create(),
-                                        placeholder: 'CÓDIGO',
-                                        className: 'flex-1 px-3 py-2 border rounded uppercase font-bold'
+                                        placeholder: 'CÓDIGO DEL VIAJE',
+                                        className: 'flex-1 px-4 py-3 border border-gray-300 rounded-lg uppercase font-bold focus:outline-none focus:border-[#197751]'
                                     }),
                                     React.createElement('button', {
                                         onClick: create,
-                                        className: 'px-6 py-2 bg-green-600 text-white rounded-lg'
+                                        className: 'px-8 py-3 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] font-semibold'
                                     }, 'Crear')
                                 )
                             ),
-                            React.createElement('div', { className: 'border rounded-lg p-4 mb-6' },
-                                React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, `Viajes (${trips.length})`),
-                                React.createElement('div', { className: 'space-y-2' },
-                                    trips.map(t => React.createElement('div', { key: t.id, className: 'flex justify-between items-center p-3 bg-gray-50 rounded-lg' },
-                                        React.createElement('div', { className: 'flex items-center gap-3' },
-                                            React.createElement('span', { className: 'font-mono font-bold text-lg' }, t.code),
-                                            t.destination && React.createElement('span', { className: 'text-sm text-gray-600' }, '→ ' + t.destination)
+
+                            React.createElement('div', { className: 'border border-gray-200 rounded-xl p-6' },
+                                React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-700' }, `📋 Viajes Existentes (${trips.length})`),
+                                React.createElement('div', { className: 'space-y-3' },
+                                    trips.map(t => React.createElement('div', { key: t.id, className: 'flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition' },
+                                        React.createElement('div', { className: 'flex items-center gap-4' },
+                                            React.createElement('span', { className: 'font-mono font-bold text-lg text-[#197751]' }, t.code),
+                                            t.destination && React.createElement('span', { className: 'text-sm text-gray-500' }, '→ ' + t.destination)
                                         ),
                                         React.createElement('div', { className: 'flex gap-2' },
                                             React.createElement('button', {
                                                 onClick: () => { setCurr(t); loadDocs(t.id); },
-                                                className: curr?.id === t.id ? 'px-4 py-2 rounded-lg bg-blue-600 text-white' : 'px-4 py-2 rounded-lg bg-blue-100 text-blue-700'
+                                                className: curr?.id === t.id ? 'px-4 py-2 rounded-lg bg-[#197751] text-white' : 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300'
                                             }, curr?.id === t.id ? 'Editando' : 'Editar'),
                                             React.createElement('button', {
                                                 onClick: () => delTrip(t.id, t.code),
-                                                className: 'px-3 py-2 bg-red-100 text-red-700 rounded-lg'
+                                                className: 'px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg'
                                             }, '🗑️')
                                         )
                                     )),
-                                    !trips.length && React.createElement('p', { className: 'text-center text-gray-500 py-4' }, 'Sin viajes')
+                                    !trips.length && React.createElement('p', { className: 'text-center text-gray-400 py-8' }, 'No hay viajes creados')
                                 )
                             )
                         ),
-                        curr && React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
-                            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-                                React.createElement('h2', { className: 'text-xl font-bold' }, 'Editando: ' + curr.code),
+
+                        curr && React.createElement('div', { className: 'bg-white rounded-2xl shadow-sm p-8' },
+                            React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+                                React.createElement('h2', { className: 'text-2xl font-bold text-gray-800' }, 'Editando: ' + curr.code),
                                 React.createElement('button', {
                                     onClick: () => setEditInfo(!editInfo),
-                                    className: 'text-blue-600'
-                                }, '✏️ Info')
+                                    className: 'px-4 py-2 text-[#197751] hover:bg-gray-50 rounded-lg'
+                                }, '✏️ ' + (editInfo ? 'Cerrar' : 'Editar Info'))
                             ),
-                            editInfo && React.createElement('div', { className: 'border rounded-lg p-4 mb-6 space-y-3' },
+
+                            editInfo && React.createElement('div', { className: 'border border-gray-200 rounded-xl p-6 mb-6 space-y-4' },
                                 React.createElement('input', {
                                     type: 'text',
-                                    placeholder: 'Nombre pasajero',
+                                    placeholder: 'Nombre del pasajero',
                                     value: curr.passenger_name || '',
                                     onChange: e => updateTrip('passenger_name', e.target.value),
-                                    className: 'w-full px-3 py-2 border rounded'
+                                    className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#197751]'
                                 }),
                                 React.createElement('input', {
                                     type: 'text',
                                     placeholder: 'Destino',
                                     value: curr.destination || '',
                                     onChange: e => updateTrip('destination', e.target.value),
-                                    className: 'w-full px-3 py-2 border rounded'
+                                    className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#197751]'
                                 }),
-                                React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                                React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
                                     React.createElement('input', {
                                         type: 'date',
                                         value: curr.start_date || '',
                                         onChange: e => updateTrip('start_date', e.target.value),
-                                        className: 'px-3 py-2 border rounded'
+                                        className: 'px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#197751]'
                                     }),
                                     React.createElement('input', {
                                         type: 'date',
                                         value: curr.end_date || '',
                                         onChange: e => updateTrip('end_date', e.target.value),
-                                        className: 'px-3 py-2 border rounded'
+                                        className: 'px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#197751]'
                                     })
-                                ),
-                                React.createElement('button', {
-                                    onClick: () => setEditInfo(false),
-                                    className: 'px-4 py-2 bg-green-600 text-white rounded-lg'
-                                }, 'Cerrar')
+                                )
                             ),
-                            React.createElement('div', { className: 'space-y-6' },
+
+                            React.createElement('div', { className: 'grid md:grid-cols-2 gap-6' },
                                 Object.keys(cats).map(k => {
                                     const catDocs = getDocsByCat(k);
-                                    return React.createElement('div', { key: k, className: 'border rounded-lg p-4' },
-                                        React.createElement('div', { className: 'flex items-center gap-3 mb-3' },
-                                            React.createElement('div', { className: `${cats[k].c} p-2 rounded-lg text-2xl` }, cats[k].i),
-                                            React.createElement('h3', { className: 'font-semibold' }, cats[k].n),
-                                            React.createElement('span', { className: 'ml-auto text-sm text-gray-500' }, catDocs.length)
+                                    return React.createElement('div', { key: k, className: 'border border-gray-200 rounded-xl p-6' },
+                                        React.createElement('div', { className: 'flex items-center gap-3 mb-4' },
+                                            React.createElement('span', { className: 'text-2xl' }, cats[k].i),
+                                            React.createElement('h3', { className: 'font-semibold text-gray-700' }, cats[k].n),
+                                            React.createElement('span', { className: 'ml-auto text-sm text-gray-400' }, catDocs.length)
                                         ),
                                         React.createElement('input', {
                                             type: 'file',
                                             accept: '.pdf',
                                             multiple: true,
                                             onChange: e => upFile(e, k),
-                                            className: 'block w-full text-sm mb-3'
+                                            className: 'block w-full text-sm text-gray-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#197751] file:text-white hover:file:bg-[#145a3e] cursor-pointer'
                                         }),
                                         catDocs.length > 0 && React.createElement('div', { className: 'space-y-2' },
-                                            catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-2 bg-gray-50 rounded' },
-                                                React.createElement('span', { className: 'text-sm truncate flex-1' }, d.display_name),
+                                            catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-2 bg-gray-50 rounded-lg hover:bg-gray-100' },
+                                                React.createElement('span', { className: 'text-sm truncate flex-1 text-gray-700' }, d.display_name),
                                                 React.createElement('button', {
                                                     onClick: () => delDoc(d.id),
-                                                    className: 'text-red-600 text-sm ml-2'
-                                                }, 'Eliminar')
+                                                    className: 'text-red-600 text-sm ml-2 hover:text-red-700'
+                                                }, '✕')
                                             ))
                                         )
                                     );
@@ -357,86 +378,87 @@
                 );
             }
 
+            // VISTA DEL USUARIO - Con todos los ajustes
             const vis = Object.keys(cats).filter(k => getDocsByCat(k).length > 0);
 
-            return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6' },
-                React.createElement('div', { className: 'max-w-4xl mx-auto' },
-                    React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
-                        React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+            return React.createElement('div', { className: 'min-h-screen bg-white p-6' },
+                React.createElement('div', { className: 'max-w-3xl mx-auto' },
+                    React.createElement('div', { className: 'mb-8' },
+                        React.createElement('div', { className: 'flex justify-between items-start mb-6' },
                             React.createElement('div', { className: 'flex-1' },
-                                React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
-                                    React.createElement('h1', { className: 'text-3xl font-bold' }, 'Documentos'),
-                                    React.createElement('span', { className: 'px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-mono font-bold' }, curr.code)
+                                React.createElement('h1', { className: 'text-3xl font-bold text-gray-800 mb-2' }, pageTitle),
+                                React.createElement('div', { className: 'flex items-center gap-2 mb-2' },
+                                    React.createElement('span', { className: 'px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-mono font-semibold' }, curr.code)
                                 ),
-                                curr.passenger_name && React.createElement('p', { className: 'text-gray-600' }, '👥 ' + curr.passenger_name)
+                                curr.passenger_name && React.createElement('p', { className: 'text-gray-600 text-sm' }, curr.passenger_name)
                             ),
                             React.createElement('div', { className: 'flex items-center gap-3' },
-                                React.createElement('img', { src: logo, className: 'h-16 w-16 object-contain' }),
+                                React.createElement('img', { src: logo, className: 'h-20 w-20 object-contain' }),
                                 React.createElement('button', {
                                     onClick: () => setCurr(null),
-                                    className: 'px-3 py-1 bg-gray-200 rounded text-sm'
+                                    className: 'text-gray-400 hover:text-gray-600 text-sm'
                                 }, 'Salir')
                             )
                         ),
-                        (curr.destination || curr.start_date) && React.createElement('div', { className: 'bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mt-4' },
-                            React.createElement('div', { className: 'flex flex-wrap gap-4 text-sm' },
+
+                        (curr.destination || curr.start_date) && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4 mb-4' },
+                            React.createElement('div', { className: 'flex flex-wrap gap-3 text-sm text-gray-600' },
                                 curr.destination && React.createElement('div', { className: 'flex items-center gap-2' },
-                                    React.createElement('span', { className: 'text-xl' }, '🌍'),
-                                    React.createElement('span', { className: 'font-medium' }, curr.destination)
+                                    React.createElement('span', {}, '📍'),
+                                    React.createElement('span', {}, curr.destination)
                                 ),
                                 curr.start_date && curr.end_date && React.createElement('div', { className: 'flex items-center gap-2' },
-                                    React.createElement('span', { className: 'text-xl' }, '📅'),
+                                    React.createElement('span', {}, '📅'),
                                     React.createElement('span', {}, fmt(curr.start_date) + ' - ' + fmt(curr.end_date))
                                 )
                             )
                         ),
-                        docs.length > 0 && React.createElement('div', { className: 'mt-4 flex justify-between' },
-                            React.createElement('p', { className: 'text-sm text-gray-600' }, docs.length + ' documento' + (docs.length !== 1 ? 's' : '')),
+
+                        docs.length > 0 && React.createElement('div', { className: 'flex justify-between items-center' },
+                            React.createElement('p', { className: 'text-sm text-gray-500' }, docs.length + ' archivo' + (docs.length !== 1 ? 's' : '')),
                             React.createElement('button', {
                                 onClick: downloadAll,
-                                className: 'px-3 py-1 bg-green-600 text-white rounded-lg text-sm'
-                            }, '📥 Todos')
+                                className: 'px-4 py-2 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] text-sm'
+                            }, 'Descargar Todos')
                         )
                     ),
-                    !vis.length ? React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-12 text-center' },
+
+                    !vis.length ? React.createElement('div', { className: 'text-center py-16' },
                         React.createElement('div', { className: 'text-6xl mb-4' }, '📄'),
-                        React.createElement('p', { className: 'text-gray-500' }, 'Sin documentos')
+                        React.createElement('p', { className: 'text-gray-400' }, 'No hay documentos disponibles')
                     ) : React.createElement('div', { className: 'space-y-6' },
                         vis.map(k => {
                             const catDocs = getDocsByCat(k);
-                            return React.createElement('div', { key: k, className: 'bg-white rounded-lg shadow-lg p-6' },
-                                React.createElement('div', { className: 'flex items-center gap-3 mb-4' },
-                                    React.createElement('div', { className: `${cats[k].c} p-3 rounded-lg text-2xl` }, cats[k].i),
-                                    React.createElement('h2', { className: 'text-xl font-semibold' }, cats[k].n)
+                            return React.createElement('div', { key: k },
+                                React.createElement('h2', { className: 'text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2' },
+                                    React.createElement('span', {}, cats[k].i),
+                                    React.createElement('span', {}, cats[k].n)
                                 ),
-                                React.createElement('div', { className: 'space-y-3' },
-                                    catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100' },
-                                        React.createElement('div', { className: 'flex items-center gap-3 flex-1' },
-                                            React.createElement('span', { className: 'text-xl' }, '📄'),
-                                            React.createElement('span', { className: 'truncate' }, d.display_name)
-                                        ),
+                                React.createElement('div', { className: 'space-y-2' },
+                                    catDocs.map(d => React.createElement('div', { key: d.id, className: 'flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100' },
+                                        React.createElement('span', { className: 'text-gray-700 text-sm flex-1 truncate' }, d.display_name),
                                         React.createElement('button', {
                                             onClick: () => download(d),
-                                            className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
-                                        }, '📥 Descargar')
+                                            className: 'px-4 py-2 bg-[#197751] text-white rounded-lg hover:bg-[#145a3e] text-sm ml-3'
+                                        }, 'Descargar')
                                     ))
                                 )
                             );
                         })
                     ),
-                    React.createElement('div', { className: 'mt-8 bg-white rounded-lg shadow-lg p-6 text-center' },
-                        React.createElement('p', { className: 'text-gray-600 mb-4 text-sm font-medium' }, 'Seguinos'),
-                        React.createElement('div', { className: 'flex justify-center gap-4' },
+
+                    React.createElement('div', { className: 'mt-12 pt-6 border-t border-gray-200' },
+                        React.createElement('div', { className: 'flex justify-center gap-6' },
                             React.createElement('a', {
                                 href: 'https://instagram.com/tripnenjoy',
                                 target: '_blank',
-                                className: 'flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm'
+                                className: 'text-gray-400 hover:text-gray-600'
                             }, '@tripnenjoy'),
                             React.createElement('a', {
                                 href: 'https://wa.me/5491126092015',
                                 target: '_blank',
-                                className: 'flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm'
-                            }, 'WhatsApp')
+                                className: 'text-gray-400 hover:text-gray-600'
+                            }, '+54 911 2609-2015')
                         )
                     )
                 )
